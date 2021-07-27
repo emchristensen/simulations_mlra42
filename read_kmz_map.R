@@ -4,6 +4,7 @@
 library(dplyr)
 library(ggplot2)
 library(rgdal)
+library(sf)
 
 inputfile = 'C:/Users/echriste/Downloads/JERStateMapSimple.kmz'
 
@@ -14,6 +15,9 @@ unzip(targetfile,)
 
 (test <- sf::read_sf('doc.kml'))
 # has 7053 rows -- polygons?
+
+# convert to SpatialPolygons type
+JRN_spatialpolygon <- sf::as_Spatial(st_zm(test), IDs = as.character(1:nrow(test)))
 
 # ============================
 # Description column has unparsed html -- extract and write to csv
@@ -31,18 +35,9 @@ attributes = read.csv('data/attributes_from_kmz_map.csv')
 # combine attributes with spatial object
 state_polygons = cbind(attributes, test[,c('Name','geometry')])
 
-# plot objects
+# plot the first object as a test
 plot(state_polygons[1,'geometry'])
 
-# # look at just Gravelly
-# gravelly = dplyr::filter(state_polygons, esite=='Gravelly')
-# plot(gravelly[,'geometry'])
-# 
-# # try to merge all gravelly into one polygon
-# datalayer_union = maptools::unionSpatialPolygons(datalayer, datalayer@data$plant)
-# gravellytest = sf::st_union(gravelly[,'geometry'])
-# plot(gravellytest)
-# # this takes a long time and what we really want is a raster
 
 
 
@@ -51,18 +46,40 @@ plot(state_polygons[1,'geometry'])
 
 # get bounds of whole set, create raster template object
 bbox = sf::st_bbox(test)
-r = raster::raster(xmn=bbox$xmin, xmx=bbox$xmax, ymn=bbox$ymin, ymx=bbox$ymax, nrows=1000, ncols=1000)
+r = raster::raster(xmn=bbox$xmin, xmx=bbox$xmax, ymn=bbox$ymin, ymx=bbox$ymax, nrows=100, ncols=100)
 
-# convert to sf object
-statepolygonssf = sf::st_sf(esite=state_polygons$esite, geometry=state_polygons$geometry)
+# # convert to sf object
+# statepolygonssf = sf::st_sf(esite=state_polygons$esite, geometry=state_polygons$geometry)
+# 
+# # create separate columns for each esite of interest (1/0) this is dumb but I can't come up with a better way
+# # esites of interest: Sandy group (Sandy, Shallow Sandy, Loamy Sand); Gravelly; Loamy to clayey group (Loamy, Clayey?)
+# statepolygonssf$SandGravelLoam = 0
+# statepolygonssf$SandGravelLoam[statepolygonssf$esite %in% c('Sandy','Shallow sandy','Gravelly','Loamy','Clayey')] <- 1
 
-# create separate columns for each esite of interest (1/0) this is dumb but I can't come up with a better way
-# esites of interest: Sandy group (Sandy, Shallow Sandy, Loamy Sand); Gravelly; Loamy to clayey group (Loamy, Clayey?)
-statepolygonssf$SandGravelLoam = 0
-statepolygonssf$SandGravelLoam[statepolygonssf$esite %in% c('Sandy','Shallow sandy','Gravelly','Loamy','Clayey')] <- 1
+# stateraster = fasterize::fasterize(statepolygonssf, r, field = 'SandGravelLoam', fun='sum')
+# plot(stateraster)
 
-stateraster = fasterize::fasterize(statepolygonssf, r, field = 'SandGravelLoam', fun='sum')
+
+# set up data columns from attributes
+state_polygons$SandGravelLoam = NA
+state_polygons$SandGravelLoam[state_polygons$esite %in% c('Sandy','Shallow sandy','Gravelly','Loamy','Clayey')] <- 1
+
+JRN_spatialpolygon@data$SandGravelLoam = state_polygons$SandGravelLoam
+JRN_spatialpolygon@data$statecode = state_polygons$state_code
+JRN_spatialpolygon@data$state = as.numeric(substr(JRN_spatialpolygon@data$statecode, 1,1))
+
+# use rasterize function instead -- slower, but more options for "fun"
+mask_raster = raster::rasterize(JRN_spatialpolygon, r, field='SandGravelLoam', fun='sum')
+plot(mask_raster)
+
+# raster of state code
+stateraster = raster::rasterize(JRN_spatialpolygon, r, field='state', fun='max')
 plot(stateraster)
 
+# mask state raster with the SandGravelLoam mask
+stateraster_masked = mask(stateraster, mask=mask_raster)
+plot(stateraster_masked)
+
 # write to file
-raster::writeRaster(stateraster, filename='data/state_map_raster.tif')
+raster::writeRaster(stateraster_masked, filename='data/state_map_raster.tif', overwrite=T)
+
