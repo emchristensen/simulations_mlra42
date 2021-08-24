@@ -6,7 +6,7 @@ library(ggplot2)
 library(rgdal)
 library(sf)
 
-inputfile = 'C:/Users/echriste/Downloads/JERStateMapSimple.kmz'
+inputfile = 'C:/Users/echriste/Documents/Work/Jornada/STSim/JERStateMapSimple.kmz'
 
 # workaround from https://mitchellgritts.com/posts/load-kml-and-kmz-files-into-r/
 targetfile = 'data/.temp.kml.zip'
@@ -77,9 +77,51 @@ stateraster = raster::rasterize(JRN_spatialpolygon, r, field='state', fun='max')
 plot(stateraster)
 
 # mask state raster with the SandGravelLoam mask
-stateraster_masked = mask(stateraster, mask=mask_raster)
+stateraster_masked = raster::mask(stateraster, mask=mask_raster)
 plot(stateraster_masked)
+
+# use ggplot
+rasterdf = raster::rasterToPoints(stateraster_masked, spatial=T)
+rasterdf2 = data.frame(rasterdf)
+rasterplot = ggplot(rasterdf2, aes(x=x, y=y)) +
+  geom_tile(aes(fill=as.factor(layer)))
+rasterplot
+ggsave('Figures/state_map_raster_JRN.png', plot=rasterplot, width=5, height=4)
 
 # write to file
 raster::writeRaster(stateraster_masked, filename='data/state_map_raster.tif', overwrite=T)
 
+# convert default numbers to my state class numbers -- the labels have to be numeric
+# 1, 2 -> 'grass'
+# 3, 4, 5 -> 'mixed grass/shrub'
+# 6 -> 'shrub'
+# 7 -> 'barren'
+# 8, 9 -> 'invaded'
+stateraster_mymodel = stateraster_masked
+stateraster_mymodel@data@values[stateraster_mymodel@data@values %in% c(1,2)] <- 1
+stateraster_mymodel@data@values[stateraster_mymodel@data@values %in% c(3,4,5)] <- 2
+stateraster_mymodel@data@values[stateraster_mymodel@data@values %in% c(6)] <- 3
+stateraster_mymodel@data@values[stateraster_mymodel@data@values %in% c(7)] <- 4
+stateraster_mymodel@data@values[stateraster_mymodel@data@values %in% c(8,9)] <- 5
+
+# plot
+rasterdf = raster::rasterToPoints(stateraster_mymodel, spatial=T)
+rasterdf2 = data.frame(rasterdf)
+rasterplot = ggplot(rasterdf2, aes(x=x, y=y)) +
+  geom_tile(aes(fill=as.factor(layer)))
+rasterplot
+
+# write to file
+raster::writeRaster(stateraster_mymodel, filename='data/state_map_raster_mymodel.tif', overwrite=T)
+
+
+# get a small subset of the map for testing models
+e = raster::extent(-106.76, -106.66, 32.55, 32.65)
+stateraster_small = raster::crop(stateraster_mymodel, e)
+
+# fill in NAs with 1s
+stateraster_small@data@values[is.na(stateraster_small@data@values)] <- 1
+plot(stateraster_small)
+
+# write to file
+raster::writeRaster(stateraster_small, filename='data/state_map_raster_small.tif', overwrite=T)
