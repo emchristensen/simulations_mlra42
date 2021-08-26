@@ -19,6 +19,11 @@ unzip(targetfile,)
 # convert to SpatialPolygons type
 JRN_spatialpolygon <- sf::as_Spatial(st_zm(test), IDs = as.character(1:nrow(test)))
 
+# convert to UTM projection
+# set projection
+utm_proj = '+proj=utm +zone=13 +datum=WGS84 +units=m'
+JRN_utm <- spTransform(JRN_spatialpolygon, utm_proj)
+
 # ============================
 # Description column has unparsed html -- extract and write to csv
 attributes = c()
@@ -45,35 +50,33 @@ plot(state_polygons[1,'geometry'])
 # create state raster map
 
 # get bounds of whole set, create raster template object
-bbox = sf::st_bbox(test)
-r = raster::raster(xmn=bbox$xmin, xmx=bbox$xmax, ymn=bbox$ymin, ymx=bbox$ymax, nrows=100, ncols=100)
+#bbox = sf::st_bbox(test)
+bbox = sf::st_bbox(JRN_utm)
 
-# # convert to sf object
-# statepolygonssf = sf::st_sf(esite=state_polygons$esite, geometry=state_polygons$geometry)
-# 
-# # create separate columns for each esite of interest (1/0) this is dumb but I can't come up with a better way
-# # esites of interest: Sandy group (Sandy, Shallow Sandy, Loamy Sand); Gravelly; Loamy to clayey group (Loamy, Clayey?)
-# statepolygonssf$SandGravelLoam = 0
-# statepolygonssf$SandGravelLoam[statepolygonssf$esite %in% c('Sandy','Shallow sandy','Gravelly','Loamy','Clayey')] <- 1
+#r = raster::raster(xmn=bbox$xmin, xmx=bbox$xmax, ymn=bbox$ymin, ymx=bbox$ymax, norw=100, ncol=100)
+r = raster::raster(xmn=bbox$xmin, xmx=bbox$xmax, ymn=bbox$ymin, ymx=bbox$ymax, crs=utm_proj, resolution=250)
 
-# stateraster = fasterize::fasterize(statepolygonssf, r, field = 'SandGravelLoam', fun='sum')
-# plot(stateraster)
 
 
 # set up data columns from attributes
 state_polygons$SandGravelLoam = NA
 state_polygons$SandGravelLoam[state_polygons$esite %in% c('Sandy','Shallow sandy','Gravelly','Loamy','Clayey')] <- 1
 
-JRN_spatialpolygon@data$SandGravelLoam = state_polygons$SandGravelLoam
-JRN_spatialpolygon@data$statecode = state_polygons$state_code
-JRN_spatialpolygon@data$state = as.numeric(substr(JRN_spatialpolygon@data$statecode, 1,1))
+# JRN_spatialpolygon@data$SandGravelLoam = state_polygons$SandGravelLoam
+# JRN_spatialpolygon@data$statecode = state_polygons$state_code
+# JRN_spatialpolygon@data$state = as.numeric(substr(JRN_spatialpolygon@data$statecode, 1,1))
+JRN_utm@data$SandGravelLoam = state_polygons$SandGravelLoam
+JRN_utm@data$statecode = state_polygons$state_code
+JRN_utm@data$state = as.numeric(substr(JRN_utm@data$statecode, 1,1))
 
 # use rasterize function instead -- slower, but more options for "fun"
-mask_raster = raster::rasterize(JRN_spatialpolygon, r, field='SandGravelLoam', fun='sum')
+#mask_raster = raster::rasterize(JRN_spatialpolygon, r, field='SandGravelLoam', fun='sum')
+mask_raster = raster::rasterize(JRN_utm, r, field='SandGravelLoam', fun='sum')
 plot(mask_raster)
 
 # raster of state code
-stateraster = raster::rasterize(JRN_spatialpolygon, r, field='state', fun='max')
+#stateraster = raster::rasterize(JRN_spatialpolygon, r, field='state', fun='max')
+stateraster = raster::rasterize(JRN_utm, r, field='state', fun='max')
 plot(stateraster)
 
 # mask state raster with the SandGravelLoam mask
@@ -116,7 +119,7 @@ raster::writeRaster(stateraster_mymodel, filename='data/state_map_raster_mymodel
 
 
 # get a small subset of the map for testing models
-e = raster::extent(-106.76, -106.66, 32.55, 32.65)
+e = raster::extent(332000, 345000, 3602000, 3610000)
 stateraster_small = raster::crop(stateraster_mymodel, e)
 
 # fill in NAs with 1s
@@ -125,3 +128,10 @@ plot(stateraster_small)
 
 # write to file
 raster::writeRaster(stateraster_small, filename='data/state_map_raster_small.tif', overwrite=T)
+
+# create a first stratum of all 1s to match
+stratum = stateraster_small
+stratum@data@values <- 1
+plot(stratum)
+
+raster::writeRaster(stratum, filename='data/first_stratum_small.tif', overwrite=T)
