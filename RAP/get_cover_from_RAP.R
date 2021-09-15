@@ -12,6 +12,7 @@
 #' no data value = 65535
 #' see "data_README.txt" for more info
 #' 
+#' I combined shrub and tree cover since the two function the same in this system
 #' 
 #' this script converts these covers to non-overlapping state categories:
 #'   state 1 = grass: shrub < 1% and perennial forb/grass >=3%
@@ -25,28 +26,42 @@ library(dplyr)
 library(ggplot2)
 library(raster)
 
-raw_rap <- 'C:/Users/echriste/test1.tif'
-s = stack(raw_rap)
+file_list = list.files('RAP/raw files', pattern = '*.tif', full.names=T)
 
+#raw_file <- 'RAP/raw files/RAP_cover_v2_1988.tif'
 
-# create objects for each raster layer
-annualcover = s@layers[[1]]
-barecover = s@layers[[2]]
-perennialforbgrass = s@layers[[4]]
-shrubcover = s@layers[[5]]
-treecover = s@layers[[6]]
+for (raw_file in file_list) {
+  # get year from file name
+  year = unlist(strsplit(tools::file_path_sans_ext(basename(raw_file)),'_'))[4]
+  
+  # read in raster stack
+  s = stack(raw_file)
+  
+  # create objects for important raster layers
+  perennialforbgrass = s@layers[[4]]
+  shrubcover = s@layers[[5]]
+  treecover = s@layers[[6]]
+  
+  # convert missing values to NA
+  perennialforbgrass[perennialforbgrass==65535] <- NA
+  shrubcover[shrubcover==65535] <- NA
+  treecover[treecover==65535] <- NA
+  
+  # combine shrub and tree
+  shrubtree = shrubcover + treecover
+  
+  # create empty raster the same size
+  stateraster = shrubcover
+  values(stateraster) <- 0
+  
+  # inequalities to assign states (won't be able to tell invaded)
+  # 1 = grass; 2 = mixed; 3 = shrub; 4 = barren; 5 = invaded
+  stateraster[shrubtree<1 & perennialforbgrass>=3] <- 1
+  stateraster[shrubtree>=1 & shrubtree<15 & perennialforbgrass>=3] <- 2
+  stateraster[shrubtree>=15] <- 3
+  stateraster[shrubtree<15 & perennialforbgrass<3] <- 4
+  
+  plot(stateraster, main=year)
 
-
-# create empty raster the same size
-stateraster = annualcover
-values(stateraster) <- 0
-
-# inequalities to assign states (won't be able to tell invaded)
-# 1 = grass; 2 = mixed; 3 = shrub; 4 = barren; 5 = invaded
-stateraster[shrubcover<1 & perennialforbgrass>=3] <- 1
-stateraster[shrubcover>=1 & shrubcover<15 & perennialforbgrass>=3] <- 2
-stateraster[shrubcover>=15] <- 3
-stateraster[shrubcover<15 & perennialforbgrass<3] <- 4
-
-plot(stateraster)
-
+  writeRaster(stateraster, filename=paste0('RAP/state_raster_', year, '.tif'), overwrite=T)
+}
