@@ -4,6 +4,9 @@ This folder contains pixel-level vegetation cover data 1984-2020 broken down by 
 
 __get_cover_from_RAP.R__ processes the files in the raw data folder and outputs rasters of model states
 
+## processed data
+__state_cover_1984_2020.csv__ csv of % cover by state as determined by RAP tool.
+
 ## raw data
 Raw data is from the Rangeland Analysis Platform (https://rangelands.app/products/). Data was downloaded using gdal tool in miniconda powershell. The following code was used to download each data file (one file = one year): 
 
