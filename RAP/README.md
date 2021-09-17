@@ -2,7 +2,8 @@
 
 This folder contains pixel-level vegetation cover data 1984-2020 broken down by category (perennial forbs and grasses, shrub, etc.) 
 
-__get_cover_from_RAP.R__ processes the files in the raw data folder and outputs rasters of model states
+__get_staterasters_from_RAP.R__ processes the files in the raw data folder and outputs rasters of model states
+__get_cover_from_RAP.R__ takes rasters created above and calculates % cover by state. output in csv form
 
 ## processed data
 __state_cover_1984_2020.csv__ csv of % cover by state as determined by RAP tool.
