@@ -20,7 +20,7 @@ for (rasterfile in file_list) {
   
   rasterdat = raster(rasterfile)
   
-  plot(rasterdat)
+  #plot(rasterdat)
   
   # get total number of cells that have values
   total = ncell(rasterdat[!is.na(rasterdat)])

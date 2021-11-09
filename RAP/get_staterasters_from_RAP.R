@@ -21,6 +21,7 @@
 #'   state 4 = barren: shrub <15% and perennial forb/grass <3%
 #' 
 #' EMC 9/13/21
+#' last update: 11/4/21
 
 library(dplyr)
 library(ggplot2)
@@ -42,10 +43,14 @@ for (raw_file in file_list) {
   shrubcover = s@layers[[5]]
   treecover = s@layers[[6]]
   
+  perennialuncert = s@layers[[10]]
+  
   # convert missing values to NA
   perennialforbgrass[perennialforbgrass==65535] <- NA
   shrubcover[shrubcover==65535] <- NA
   treecover[treecover==65535] <- NA
+  
+  perennialuncert[perennialuncert==65535] <- NA
   
   # combine shrub and tree
   shrubtree = shrubcover + treecover
@@ -57,8 +62,9 @@ for (raw_file in file_list) {
   # inequalities to assign states (won't be able to tell invaded)
   # 1 = grass; 2 = mixed; 3 = shrub; 4 = barren; 5 = invaded
   stateraster[shrubtree<1 & perennialforbgrass>=3] <- 1
-  stateraster[shrubtree>=1 & shrubtree<15 & perennialforbgrass>=3] <- 2
-  stateraster[shrubtree>=15] <- 3
+  stateraster[shrubtree>=1 & shrubtree <15 & perennialforbgrass>=3] <- 2
+  #stateraster[shrubtree>=1 & perennialforbgrass>=5] <- 2
+  stateraster[shrubtree>=15 ] <- 3
   stateraster[shrubtree<15 & perennialforbgrass<3] <- 4
   
   plot(stateraster, main=year)
