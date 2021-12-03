@@ -1,6 +1,5 @@
-Elevation data folder
-Erica Christensen
-11/30/21
+### Elevation data folder
+
 
 This folder contains elevation data from USGS, DEM 1 arc second resolution. Data was downloaded from https://apps.nationalmap.gov/downloader/#/
 
