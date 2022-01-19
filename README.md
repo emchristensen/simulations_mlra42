@@ -4,5 +4,6 @@ This aim of this project is to parameterize and run simulations of a state-and-t
 
 ### Workflow
 1. Define area of interest
-    - Within MLRA 42
+    - Within MLRA 42 (shapefile of boundary in shapefile/nrcs142.2_052440)
     - Elevation (MLRA 42 ranges from 555-2735m)
+
