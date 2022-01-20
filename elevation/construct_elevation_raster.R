@@ -68,3 +68,12 @@ plot(MLRA42_elevation)
 # write to file
 writeRaster(MLRA42_elevation, filename='elevation/MLRA42_DEM1arcsec.tif')
 
+
+# ==================================================
+# choose elevation bounds for analysis
+
+MLRA42_elevation = raster('elevation/MLRA42_DEM1arcsec.tif')
+
+# plot areas over 2k m
+MLRA42_over2k = mask(MLRA42_elevation, MLRA42_elevation >2000, maskvalue=0)
+plot(MLRA42_over2k)
