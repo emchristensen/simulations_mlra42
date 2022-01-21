@@ -54,12 +54,12 @@ while (n<7) {
 
   # store probabilities in data frame
   prob = data.frame(timestep=n,
-                    prob_1_2=prob_1_2,
+                    prob_1_2=max(prob_1_2,0),
                     prob_1_3=max(prob_1_3,0),
-                    prob_2_1=prob_2_1,
-                    prob_2_3=prob_2_3,
-                    prob_3_1=prob_3_1,
-                    prob_3_2=prob_3_2)
+                    prob_2_1=max(prob_2_1,0),
+                    prob_2_3=max(prob_2_3,0),
+                    prob_3_1=max(prob_3_1,0),
+                    prob_3_2=max(prob_3_2,0))
   
   probabilities = rbind(probabilities, prob)
   # go to next time step 
