@@ -26,9 +26,4 @@ __data_README.txt__ contains the readme from the data repository
 
 
 
-# misc
-
-__get_staterasters_from_RAP.R__ processes the files in the raw data folder and outputs rasters of model states
-__get_cover_from_RAP.R__ takes rasters created above and calculates % cover by state. output in csv form
-__pixel_states_timeseries.R__ takes rasters created above and returns table of cover by veg class for each pixel. Also contains code to smooth each pixel's timeseries using GAMs
 
