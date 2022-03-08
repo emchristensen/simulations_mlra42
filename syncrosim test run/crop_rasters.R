@@ -4,9 +4,10 @@
 
 library(raster)
 library(dplyr)
+library(ggplot2)
 
 # new extent: subregion of MLRA 42
-e = extent(-106.5,-106, 32.15, 32.75)
+e = extent(-106.5,-106, 32.5, 33)
 
 
 # initial conditions
@@ -14,7 +15,19 @@ initialcond = raster('RAP/shrub rasters 5yr/RAP_shrubtree_1986_1990_categories.t
 
 IC_crop = crop(initialcond, e)
 plot(IC_crop)
-freq(IC_crop)
+
+# get relative areas for non-spatial run
+freq(IC_crop)/ncell(IC_crop)
+
+# plot and save figure
+IC_crop_df = rasterToPoints(IC_crop) %>% data.frame()
+colnames(IC_crop_df) <- c('lon','lat','state')
+IC_crop_df$state = as.factor(IC_crop_df$state)
+initialcond = ggplot(data = IC_crop_df, aes(x=lon, y=lat)) +
+  geom_raster(aes(fill=state)) +
+  theme_bw()
+initialcond
+ggsave('syncrosim test run/Figures/states_1986_1990.png', plot=initialcond, width=4, height=3)
 
 writeRaster(IC_crop, filename = 'syncrosim test run/shrubtree_1986_1990.tif', overwrite=T)
 
@@ -61,11 +74,23 @@ writeRaster(ts7_crop, filename = 'syncrosim test run/shrubtree_2016_2020.tif', o
 # ========================================
 # look at soil and elevation maps
 elevation = raster('elevation/MLRA42_DEM1arcsec.tif')
-plot(elevation)
+#plot(elevation)
 
 elevation_crop = crop(elevation, e)
-plot(elevation_crop)
+elevation_df = rasterToPoints(elevation_crop) %>% data.frame()
+colnames(elevation_df) <- c('x','y','elevation')
+elevationplot = ggplot(data=elevation_df, aes(x=x, y=y)) +
+  geom_raster(aes(fill=elevation))
+elevationplot
+
+ggsave('syncrosim test run/Figures/elevation.png', plot=elevationplot, width=4, height=3)
 
 soil = raster('Soil maps/ensemble_soil_map_MLRA42.tif')
 soil_crop = crop(soil, e)
-plot(soil_crop)
+soil_df = rasterToPoints(soil_crop) %>% data.frame()
+colnames(soil_df) <- c('x','y','soil')
+soilplot = ggplot(data=soil_df, aes(x=x, y=y)) +
+  geom_raster(aes(fill=soil))
+soilplot
+
+ggsave('syncrosim test run/Figures/soil.png', plot=soilplot, width=4, height=3)
