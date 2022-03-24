@@ -20,13 +20,11 @@
 library(raster)
 library(dplyr)
 
-#file_list = list.files('RAP/raw files', pattern = '*.tif', full.names=T)
 file_list = list.files('RAP/raw files MLRA42', pattern = '*.tif', full.names=T)
 
-raw_file = file_list[31]
-file_list2 = file_list[c(21)]
 
-for (raw_file in file_list2) {
+
+for (raw_file in file_list) {
   # get year from file name
   year = unlist(strsplit(tools::file_path_sans_ext(basename(raw_file)),'_'))[4]
   

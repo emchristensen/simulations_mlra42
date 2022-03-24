@@ -74,6 +74,6 @@ writeRaster(MLRA42_elevation, filename='elevation/MLRA42_DEM1arcsec.tif')
 
 MLRA42_elevation = raster('elevation/MLRA42_DEM1arcsec.tif')
 
-# plot areas over 2k m
-MLRA42_over2k = mask(MLRA42_elevation, MLRA42_elevation >2000, maskvalue=0)
-plot(MLRA42_over2k)
+# plot areas over 6000 ft (1829m)
+MLRA42_under6kft = mask(MLRA42_elevation, MLRA42_elevation <1829, maskvalue=0)
+plot(MLRA42_under6kft)

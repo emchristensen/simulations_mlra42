@@ -1,6 +1,6 @@
 # RAP cover data
 
-This folder contains pixel-level vegetation cover data 1984-2020 broken down by category (perennial forbs and grasses, shrub, etc.) 
+This folder contains scripts for obtaining and processing pixel-level vegetation cover data 1984-2020 broken down by category (perennial forbs and grasses, shrub, etc.) 
 
 ## Raw data
 Raw data is from the Rangeland Analysis Platform (https://rangelands.app/products/). Data covering the entire MLRA 42 area was downloaded using gdal tool in miniconda powershell. These are very large files. The following code was used to download each data file (one file = one year; see conda_code_mlra42.txt): 
@@ -14,7 +14,7 @@ __data_README.txt__ contains the readme from the data repository
 1. Download RAP data uisng conda (see above)
    - Large data files placed in __RAP/raw files MLRA42/raw downloads__  
 2. Trim raw files to MLRA42 boundary
-   - Run code in __RAP/raw files MLRA42/trim_rap_files.R__
+   - Run code in __RAP/trim_rap_files.R__
    - Trimmed files are saved to __RAP/raw filesw MLRA42__  
 3. Extract shrub/tree layer from RAP files
    - Run code in __RAP/construct_shrubcover_rasters.R__
