@@ -23,7 +23,9 @@ __data_README.txt__ contains the readme from the data repository
 4. Calculate 5-year means of shrub cover
    - Run code in __RAP/calculate_5year_mean_shrub_rasters.R__
    - Shrub rasters are saved to __RAP/shrub rasters 5yr__
-
+5. Convert shrub cover to state classes
+   - Run code __RAP/categorize_shrub_rasters.R__  
+   - State class rasters are saved to __RAP/shrub rasters 5yr__  
 
 
 
