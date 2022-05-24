@@ -4,12 +4,26 @@ This folder contains data from RCMAP shrub cover estimates https://www.mrlc.gov/
 
 Data covers the western US and is based on Landsat. 
 
-### Data acquisition
-
-Download entire extent from: https://www.mrlc.gov/data?f%5B0%5D=category%3ARCMAP%20-%20Time-Series%20-%20Cover&f%5B1%5D=region%3Awestern%20u.s.&f%5B2%5D=year%3A2009-2020
-
+## Data acquisition
 
 Map tool to select a subregion: https://www.mrlc.gov/rangeland-viewer/
- - Select years and layers wanted (2016-2020 and shrub cover)  
- - Data download link will be emailed to address supplied
+ - Geographic region covers southern half of NM 
+ - Selected years and layers wanted (1985-2020 and shrub cover)  
 
+## Mask to area of interest
+
+__process_rcmap_rasters.R__ script that masks raw RCMAP rasters to study area.
+ - Saves masked rasters to "masked rasters" folder
+ - Classifies each pixel to state (1 = no shrub, 2 = low shrub, 3 = shrubland) and saves to "staterasters" folder.
+
+__study-area-mask.tif__ raster for masking area of interest.
+
+ - MLRA 42
+ - State of NM
+ - Elevation 1000-2000m
+ - LandFire BPS classes of shrubland or grassland
+ - No pixels classified as anthropogenic land cover types (according to NLCD 2019 map)
+
+## Get transition probabilities
+
+__get_transition_probabilities_rcmap.R__ script which uses files in "staterasters" folder and estimates rates of annual transition between the three shrub states. Output is written to __transition_probabilities.csv__.
