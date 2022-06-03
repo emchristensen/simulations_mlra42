@@ -3,4 +3,8 @@
 .RData
 .Ruserdata
 RAP/raw files
+RCMAP/*.tiff
+RCMAP/*.xml
 RAP/*.tif
+RAP/raw files MLRA42/
+RCMAP/masked rasters/
