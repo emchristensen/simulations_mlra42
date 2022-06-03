@@ -7,6 +7,8 @@
 #' 
 #' 
 #' EMC 5/17/22
+#' 
+#' Deprecated 6/3/22: this analysis is now combined with get_transition_probabilities_by_soil.R
 
 
 library(dplyr)
