@@ -7,8 +7,15 @@ Ground_data/BLM_Natl_AIM_TerrADat_Hub.csv
 Raster_data/AerialPhotoShrubcover/
 Raster_data/Elevation/DEM_1arcsec/
 Raster_data/RCMAP/*.tiff
-Raster_data/RAP/*.tif
+Raster_data/RCMAP/Jornada area/
+Raster_data/RCMAP/masked rasters/
+Raster_data/RCMAP/staterasters/
+Raster_data/RAP/for comparisons/
 Raster_data/RAP/raw files MLRA42/
+Raster_data/RAP/shrub rasters/
+Raster_data/RAP/shrub rasters 5yr/
+Raster_data/RAP/shrub rasters MLRA42/
+
 Raster_data/Soil_maps/MLRA42_Prediction/
 
 
