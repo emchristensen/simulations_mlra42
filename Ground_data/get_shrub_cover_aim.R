@@ -12,7 +12,7 @@ library(terra)
 
 
 # raw data
-aim_raw = read.csv('Ground data/BLM_Natl_AIM_TerrADat_Hub.csv')
+aim_raw = read.csv('Ground_data/BLM_Natl_AIM_TerrADat_Hub.csv')
 
 # get only New Mexico, below 35.4 latitude, get only variables related to date, location, and cover
 aim <- aim_raw %>%
@@ -48,7 +48,7 @@ ptv = terra::vect(lonlat, atts = df, crs="+proj=longlat +datum=NAD83")
 
 # get RAP data for 2020 
 #rap2020 = terra::rast('RAP/shrub rasters/RAP_shrubtree_2020.tif')
-rap2020 = terra::rast('RAP/shrub rasters MLRA42/RAP_shrubtree_2020.tif')
+rap2020 = terra::rast('Raster_data/RAP/shrub rasters MLRA42/RAP_shrubtree_2020.tif')
 
 
 # get intersection of AIM points and RAP raster
@@ -66,7 +66,7 @@ ggplot(aim_rap_2020) +
   theme_bw()
 
 # get RCMAP data for 2020
-rcmap2020 = terra::rast('RCMAP/rcmap_shrub_2020_LajMUGu45oF76trHI4pc.tiff')
+rcmap2020 = terra::rast('Raster_data/RCMAP/rcmap_shrub_2020_LajMUGu45oF76trHI4pc.tiff')
 
 # get RCMAP into same crs as points
 rcmap2020_lonlat = project(rcmap2020, "+proj=longlat +datum=NAD83")
