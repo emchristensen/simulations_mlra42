@@ -1,0 +1,296 @@
+---
+title: "Compare Shrub Cover Data Sources"
+author: "Erica Christensen"
+date: "4/25/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+library(dplyr)
+library(terra)
+library(ggplot2)
+library(lubridate)
+
+# load data
+
+# jornada outline
+jer_boundary = vect('shapefile/jer_boundary.shp')
+
+# list RCMAP shrub files
+file_list = list.files('RCMAP', pattern = 'rcmap_shrub_[[:alnum:]]*_[[:alnum:]]*.tiff$', full.names=T)
+
+# load rcmap raster
+rcmap_2016 = terra::rast(file_list[1])
+
+# convert jer_boundary to same crs as raster
+jer_boundary_utm = project(jer_boundary, crs(rcmap_2016))
+
+# crop raster to jornada bounds
+rcmap_2016_crop = crop(rcmap_2016, jer_boundary_utm)
+
+# values of 101 in RCMAP seem to be NAs
+rcmap_2016_crop[rcmap_2016_crop>100] <- NA
+
+
+
+# # ====== do once
+# # list RAP shrub cover files
+# rap_files = list.files('RAP/shrub rasters MLRA42', pattern = '*.tif', full.names = T)
+# # load rap raster and reproject
+# rap_2016 = terra::rast(rap_files[32]) %>% project(crs(rcmap_2016))
+# # crop
+# rap_2016_crop = crop(rap_2016, rcmap_2016_crop)
+# 
+# terra::writeRaster(rap_2016_crop, filename='RAP/for comparisons/rap_2016_jornadacrop.tif', overwrite=T)
+# 
+# # load rap raster and reproject
+# rap_2017 = terra::rast(rap_files[33]) %>% project(crs(rcmap_2016))
+# # crop
+# rap_2017_crop = crop(rap_2017, rcmap_2017_crop)
+# 
+# terra::writeRaster(rap_2017_crop, filename='RAP/for comparisons/rap_2017_jornadacrop.tif', overwrite=T)
+# # =========
+
+
+
+# load rap raster
+rap_2016_crop = terra::rast('RAP/for comparisons/rap_2016_jornadacrop.tif')
+
+# the extents do not match, probably because of different initical crs, so I resample rap
+rap_2016_resamp = resample(rap_2016_crop, rcmap_2016_crop)
+
+```
+
+## Compare RAP to RCMAP
+
+RAP and RCMAP are two data products that estimate fractional vegetation cover for the SW United States. In both cases, models are based on LANDSAT, so both have 30m pixel resolution and span 1985-present. 
+
+Looking at the distribution of values in RAP and RCMAP, it's apparent that RAP values are generally higher. [2016 data shown]
+
+
+```{r rapvsrcmap, echo=F}
+rcmapdifference = rcmap_2016_crop - rap_2016_resamp
+
+
+# look at histograms of rcmap and rap separately
+par(mfrow=c(1,3))
+hist(values(rcmap_2016_crop), breaks=0:110, main='RCMAP values')
+hist(values(rap_2016_resamp), breaks=0:110, main='RAP values')
+suppressWarnings(hist(rcmapdifference, breaks= -52:30, main='RCMAP - RAP values'))
+```
+
+## Year to year change in shrub
+
+Shrub cover shouldn't change more than about .25% per year. I looked at the difference between 2016 and 2017 for RAP and RCMAP shrub cover estimates. 
+
+```{r pixelwisechange, echo=FALSE}
+# look at average change per pixel between 2016 and 2017
+
+# load rcmap raster
+rcmap_2017 = terra::rast(file_list[2])
+
+# crop raster to jornada bounds
+rcmap_2017_crop = crop(rcmap_2017, jer_boundary_utm)
+
+# values of 101 in RCMAP seem to be NAs
+rcmap_2017_crop[rcmap_2017_crop>100] <- NA
+
+# load rap raster
+rap_2017_crop = terra::rast('RAP/for comparisons/rap_2017_jornadacrop.tif')
+
+# the extents do not match, probably because of different initical crs, so I resample rap
+rap_2017_resamp = resample(rap_2017_crop, rcmap_2017_crop)
+
+# difference in RAP, RCMAP 2016-2017
+rap_1yrdiff = rap_2017_resamp-rap_2016_resamp
+rcmap_1yrdiff = rcmap_2017_crop-rcmap_2016_crop
+
+# plots
+par(mfrow=c(2,2))
+
+hist(values(rap_1yrdiff), breaks=-25:22, main='RAP 1-yr difference', xlab='')
+plot(rap_1yrdiff)
+hist(values(rcmap_1yrdiff), breaks=-25:22, main='RCMAP 1-yr difference', xlab='')
+plot(rcmap_1yrdiff)
+
+```
+
+RCMAP has much lower year to year shrub change than RAP.
+
+## AIM shrub cover data
+
+There are point shrub cover measurements available from AIM TerrADat. I compared point measurements to RAP (top row of figure) and RCMAP (bottom row of figure) where they overlap. Root Mean Squared Error varied by year.
+
+```{r aimdata, echo=F}
+# raw data
+aim_raw = read.csv('Ground data/BLM_Natl_AIM_TerrADat_Hub.csv')
+
+# get only New Mexico, below 35.4 latitude, get only variables related to date, location, and cover
+aim <- aim_raw %>%
+  dplyr::filter(State=='NM', Latitude_NAD83<35.4) %>%
+  dplyr::select(OBJECTID, PrimaryKey, PlotKey, PlotID, 
+                lat = Latitude_NAD83, 
+                long = Longitude_NAD83, DateVisited,
+                shrubcover = AH_ShrubCover) %>%
+  mutate(date = as.Date(DateVisited),
+         year = year(date))
+
+# look at one year at a time: 2020
+aim2020 = dplyr::filter(aim, year==2020)
+aim2020$ID = 1:nrow(aim2020)
+
+# turn into terra SpatVector object
+df2020 = data.frame(ID=aim2020$ID, shrubcover=aim2020$shrubcover)
+pts2020 = terra::vect(cbind(aim2020$lon, aim2020$lat), atts = df2020, crs="+proj=longlat +datum=NAD83")
+
+# get RAP data for 2020
+rap2020 = terra::rast('RAP/shrub rasters MLRA42/RAP_shrubtree_2020.tif')
+
+# get intersection of AIM points and RAP raster
+aim_rap_2020 = terra::extract(rap2020, pts2020) %>%
+  merge(aim2020) %>%
+  dplyr::filter(!is.na(RAP_shrubtree_2020))
+rmse2020 = round(sqrt(mean((aim_rap_2020$shrubcover-aim_rap_2020$RAP_shrubtree_2020)^2)), digits=2)
+
+# plot AIM shrub cover vs RAP shrub cover
+rap2020plot = ggplot(aim_rap_2020) +
+  geom_point(aes(x=shrubcover, y=RAP_shrubtree_2020)) +
+  xlab('AIM') +
+  ylab('RAP') +
+  ggtitle('2020') +
+  geom_abline(intercept = 0, slope = 1) +
+  coord_cartesian(xlim=c(0,50), ylim=c(0,50)) +
+  annotate(geom='text', x=5, y=45, label=paste('RMSE: ',rmse2020)) +
+  theme_bw()
+
+# look at one year at a time: 2018
+aim2018 = dplyr::filter(aim, year==2018)
+aim2018$ID = 1:nrow(aim2018)
+
+# turn into terra SpatVector object
+df2018 = data.frame(ID=aim2018$ID, shrubcover=aim2018$shrubcover)
+pts2018 = terra::vect(cbind(aim2018$lon, aim2018$lat), atts = df2018, crs="+proj=longlat +datum=NAD83")
+
+# get RAP data for 2018
+rap2018 = terra::rast('RAP/shrub rasters MLRA42/RAP_shrubtree_2018.tif')
+
+# get intersection of AIM points and RAP raster
+aim_rap_2018 = terra::extract(rap2018, pts2018) %>%
+  merge(aim2018) %>%
+  dplyr::filter(!is.na(RAP_shrubtree_2018))
+rmse2018 = round(sqrt(mean((aim_rap_2018$shrubcover-aim_rap_2018$RAP_shrubtree_2018)^2)), digits=2)
+
+# plot AIM shrub cover vs RAP shrub cover
+rap2018plot = ggplot(aim_rap_2018) +
+  geom_point(aes(x=shrubcover, y=RAP_shrubtree_2018)) +
+  xlab('AIM') +
+  ylab('RAP') +
+  ggtitle('2018') +
+  geom_abline(intercept = 0, slope = 1) +
+  coord_cartesian(xlim=c(0,50), ylim=c(0,50)) +
+  annotate(geom='text', x=5, y=45, label=paste('RMSE: ',rmse2018)) +
+  theme_bw()
+
+# look at one year at a time: 2016
+aim2016 = dplyr::filter(aim, year==2016)
+aim2016$ID = 1:nrow(aim2016)
+
+# turn into terra SpatVector object
+df2016 = data.frame(ID=aim2016$ID, shrubcover=aim2016$shrubcover)
+pts2016 = terra::vect(cbind(aim2016$lon, aim2016$lat), atts = df2016, crs="+proj=longlat +datum=NAD83")
+
+# get RAP data for 2016
+rap2016 = terra::rast('RAP/shrub rasters MLRA42/RAP_shrubtree_2016.tif')
+
+# get intersection of AIM points and RAP raster
+aim_rap_2016 = terra::extract(rap2016, pts2016) %>%
+  merge(aim2016) %>%
+  dplyr::filter(!is.na(RAP_shrubtree_2016))
+rmse2016 = round(sqrt(mean((aim_rap_2016$shrubcover-aim_rap_2016$RAP_shrubtree_2016)^2)), digits=2)
+
+# plot AIM shrub cover vs RAP shrub cover
+rap2016plot = ggplot(aim_rap_2016) +
+  geom_point(aes(x=shrubcover, y=RAP_shrubtree_2016)) +
+  xlab('AIM') +
+  ylab('RAP') +
+  ggtitle('2016') +
+  geom_abline(intercept = 0, slope = 1) +
+  coord_cartesian(xlim=c(0,50), ylim=c(0,50)) +
+  annotate(geom='text', x=5, y=45, label=paste('RMSE: ',rmse2016)) +
+  theme_bw()
+
+# ===================
+# RCMAP comparison to AIM
+# get RCMAP data for 2020
+#rcmap2020 = terra::rast('RCMAP/rcmap_shrub_2020_LajMUGu45oF76trHI4pc.tiff')
+rcmap2020 = terra::rast(file_list[5])
+rcmap2020[rcmap2020>100] <- NA
+
+# get RCMAP into same crs as points
+rcmap2020_lonlat = project(rcmap2020, "+proj=longlat +datum=NAD83")
+
+# get intersection of AIM points and RCMAP raster
+aim_rcmap_2020 = terra::extract(rcmap2020_lonlat, pts2020, fun=mean) %>%
+  merge(aim2020) %>%
+  dplyr::filter(!is.na(Red))
+rmse = round(sqrt(mean((aim_rcmap_2020$shrubcover-aim_rcmap_2020$Red)^2)), digits=2)
+
+rcmap2020plot = ggplot(aim_rcmap_2020) +
+  geom_point(aes(x=shrubcover, y=Red)) +
+  xlab('AIM') +
+  ylab('RCMAP') +
+  ggtitle('2020') +
+  geom_abline(intercept = 0, slope = 1) +
+  coord_cartesian(xlim=c(0,50), ylim=c(0,50)) +
+  annotate(geom='text', x=5, y=45, label=paste('RMSE: ',rmse)) +
+  theme_bw()
+
+# get RCMAP data for 2018
+rcmap2018 = terra::rast(file_list[3])
+rcmap2018[rcmap2018>100] <- NA
+
+# get RCMAP into same crs as points
+rcmap2018_lonlat = project(rcmap2018, "+proj=longlat +datum=NAD83")
+
+# get intersection of AIM points and RCMAP raster
+aim_rcmap_2018 = terra::extract(rcmap2018_lonlat, pts2018, fun=mean) %>%
+  merge(aim2018) %>%
+  dplyr::filter(!is.na(Red))
+rmse18 = round(sqrt(mean((aim_rcmap_2018$shrubcover-aim_rcmap_2018$Red)^2)), digits=2)
+
+rcmap2018plot = ggplot(aim_rcmap_2018) +
+  geom_point(aes(x=shrubcover, y=Red)) +
+  xlab('AIM') +
+  ylab('RCMAP') +
+  ggtitle('2018') +
+  geom_abline(intercept = 0, slope = 1) +
+  coord_cartesian(xlim=c(0,50), ylim=c(0,50)) +
+  annotate(geom='text', x=5, y=45, label=paste('RMSE: ',rmse18)) +
+  theme_bw()
+
+# get RCMAP data for 2016
+rcmap2016 = terra::rast(file_list[1])
+rcmap2016[rcmap2016>100] <- NA
+
+# get RCMAP into same crs as points
+rcmap2016_lonlat = project(rcmap2016, "+proj=longlat +datum=NAD83")
+
+# get intersection of AIM points and RCMAP raster
+aim_rcmap_2016 = terra::extract(rcmap2016_lonlat, pts2016, fun=mean) %>%
+  merge(aim2016) %>%
+  dplyr::filter(!is.na(Red))
+rmse16 = round(sqrt(mean((aim_rcmap_2016$shrubcover-aim_rcmap_2016$Red)^2)), digits=2)
+
+rcmap2016plot = ggplot(aim_rcmap_2016) +
+  geom_point(aes(x=shrubcover, y=Red)) +
+  xlab('AIM') +
+  ylab('RCMAP') +
+  ggtitle('2016') +
+  geom_abline(intercept = 0, slope = 1) +
+  coord_cartesian(xlim=c(0,50), ylim=c(0,50)) +
+  annotate(geom='text', x=5, y=45, label=paste('RMSE: ',rmse16)) +
+  theme_bw()
+
+multifig = gridExtra::grid.arrange(rap2016plot, rap2018plot, rap2020plot, rcmap2016plot, rcmap2018plot, rcmap2020plot, nrow=2)
+ggsave('RAP_RCMAP_RMSE.png', plot=multifig)
+```
