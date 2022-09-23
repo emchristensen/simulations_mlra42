@@ -66,7 +66,7 @@ ggplot(aim_rap_2020) +
   theme_bw()
 
 # get RCMAP data for 2020
-rcmap2020 = terra::rast('Raster_data/RCMAP/rcmap_shrub_2020_LajMUGu45oF76trHI4pc.tiff')
+rcmap2020 = terra::rast('Raster_data/RCMAP/rcmap_shrub_2020_YrxovhRBgE4yFRlToIA1.tiff')
 
 # get RCMAP into same crs as points
 rcmap2020_lonlat = project(rcmap2020, "+proj=longlat +datum=NAD83")
@@ -74,10 +74,10 @@ rcmap2020_lonlat = project(rcmap2020, "+proj=longlat +datum=NAD83")
 # get intersection of AIM points and RCMAP raster
 aim_rcmap_2020 = terra::extract(rcmap2020_lonlat, ptv, fun=mean) %>%
   merge(aim2020) %>%
-  dplyr::filter(!is.na(Red))
+  dplyr::filter(!is.na(Layer_1))
 
 ggplot(aim_rcmap_2020) +
-  geom_point(aes(x=shrubcover, y=Red)) +
+  geom_point(aes(x=shrubcover, y=Layer_1)) +
   xlab('AIM') +
   ylab('RCMAP') +
   ggtitle('2020') +
@@ -85,5 +85,5 @@ ggplot(aim_rcmap_2020) +
   theme_bw()
 
 # calculate rmse for RAP and RCMAP
-sqrt(mean((aim_rcmap_2020$shrubcover-aim_rcmap_2020$Red)^2))
+sqrt(mean((aim_rcmap_2020$shrubcover-aim_rcmap_2020$Layer_1)^2))
 sqrt(mean((aim_rap_2020$shrubcover-aim_rap_2020$RAP_shrubtree_2020)^2))

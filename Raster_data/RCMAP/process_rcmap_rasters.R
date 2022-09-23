@@ -14,10 +14,10 @@ library(dplyr)
 library(terra)
 
 # get list of downloaded RCMAP rasters
-file_list = list.files('RCMAP', pattern = '*.tiff$', full.names=T)
+file_list = list.files('Raster_data/RCMAP', pattern = '*.tiff$', full.names=T)
 
 # load mask raster
-area_mask = terra::rast('RCMAP/study-area-mask.tif')
+area_mask = terra::rast('Raster_data/study-area-mask.tif')
 
 
 # categorization matrix
@@ -42,12 +42,12 @@ for (rcmapfile in file_list) {
   rcmap_mask[rcmap_mask>100] <- NA
   
   # save to file
-  writeRaster(rcmap_mask, filename=paste0('RCMAP/masked rasters/rcmap_masked_', year, '.tif'), overwrite=T)
+  writeRaster(rcmap_mask, filename=paste0('Raster_data/RCMAP/masked rasters/rcmap_masked_', year, '.tif'), overwrite=T)
   
   # categorize
   stateraster = classify(rcmap_mask, rclmat, include.lowest=T)
 
   # save to file
-  writeRaster(stateraster, filename=paste0('RCMAP/staterasters/rcmap_states_', year, '.tif'), overwrite=T)
+  writeRaster(stateraster, filename=paste0('Raster_data/RCMAP/staterasters/rcmap_states_', year, '.tif'), overwrite=T)
 }
 

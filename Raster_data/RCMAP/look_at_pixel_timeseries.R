@@ -2,16 +2,16 @@ library(dplyr)
 library(terra)
 library(ggplot2)
 
-file_list = list.files('RCMAP/masked rasters', pattern = '*.tif$', full.names=T)
+file_list = list.files('Raster_data/RCMAP/masked rasters', pattern = '*.tif$', full.names=T)
 
 
-rasterstack = raster::stack(file_list)
+rasterstack = terra::rast(file_list)
 
 # focus on first raster
-oneraster = subset(rasterstack,1) %>% terra::rast()
+oneraster = rasterstack[[1]]
 
 # get random pixels
-n = 100
+n = 10
 pixel = spatSample(oneraster, n, 'random', xy=T)
 
 # get 2016-2020 for random pixels
